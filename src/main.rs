@@ -6,7 +6,7 @@
 //!
 //! # Credits
 //!
-//! This is a Rust implementation of the [AWG RemoteUI], originally written in Python
+//! This is a Rust implementation based on the [AWG RemoteUI], originally written in Python
 //! by wolf2018 (12-3-2022).
 //!
 //! [build instructions]: https://www.instructables.com/Poor-Mans-Waveform-Generator-Based-on-RP2040-Raspb/
