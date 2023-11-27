@@ -1,0 +1,81 @@
+import { ComboBox } from "std-widgets.slint";
+import { Row, TitledSection } from "section.slint";
+import { DropdownField, NumberInputField, SliderField, Numbers } from "components.slint";
+
+
+export component Setup inherits TitledSection {
+    callback set-function(string /* function */);
+
+    in-out property amplitude <=> ampl.value;
+    out property frequency <=> freq.value;
+    out property freq-unit-index <=> unit.current-index;
+    in property functions <=> func.model;
+    in-out property offset <=> offset.value;
+
+    title: "Setup";
+
+    Row {
+        func := DropdownField {
+            label: "Function";
+
+            selected(func) => {
+                root.set-function(func);
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+
+            freq := NumberInputField {
+                label: "Frequency";
+
+                horizontal-alignment: right;
+
+                minimum: 1;
+                maximum: 1000;
+                decimals: 3;
+                value: 1;
+
+                edited => {
+                    // Limit to 15 MHz
+                    if (self.value > 15 && unit.current-index == 2) {
+                        self.set-value(15);
+                    }
+                }
+            }
+            unit := ComboBox {
+                model: ["Hz", "kHz ", "MHz"];
+                current-index: 1;
+
+                selected(str) => {
+                    if (str == "MHz" && freq.value > 15) {
+                        freq.set-value(15);
+                    }
+                }
+            }
+        }
+    }
+
+    Row {
+        ampl := SliderField {
+            label: "Amplitude";
+
+            width: 250px;
+
+            decimals: 2;
+            minimum: 0;
+            maximum: 1;
+            value: 0.48;
+        }
+        offset := SliderField {
+            label: "Offset";
+
+            width: 250px;
+
+            decimals: 2;
+            minimum: 0;
+            maximum: 1;
+            value: 0.5;
+        }
+    }
+}

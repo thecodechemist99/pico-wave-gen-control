@@ -1,0 +1,41 @@
+export component Section {
+    width: 100%;
+
+    Rectangle {
+        background: lightgrey;
+        border-radius: 9px;
+
+        VerticalLayout {
+            padding: 20px;
+            alignment: start;
+            spacing: 20px;
+
+            @children
+        }
+    }
+}
+
+export component TitledSection {
+    in property title <=> t.text;
+
+    Section {
+        t := Text {
+            font-size: 12pt;
+            font-weight: 500;
+        }
+
+        @children
+    }
+}
+
+export component Row {
+    in property alignment <=> l.alignment;
+
+    l := HorizontalLayout {
+        height: 30px;
+        alignment: start;
+        spacing: 20px;
+
+        @children
+    }
+}

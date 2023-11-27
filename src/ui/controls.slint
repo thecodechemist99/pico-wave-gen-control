@@ -1,0 +1,40 @@
+import { Button } from "std-widgets.slint";
+import { Row, TitledSection } from "section.slint";
+import { NumberInputField, StatusField } from "components.slint";
+
+export component Controls inherits TitledSection {
+    callback setup(int /* buffer size */);
+    callback stop();
+
+    in property indicator <=> status.status;
+    in property status <=> status.content;
+
+    title: "Controls";
+
+    Row {
+        Button {
+            text: "Setup Generator";
+            clicked => {
+                // Check for valid buffer size before calling callback
+                if (mod(buf-size.value, 4) == 0) {
+                    root.setup(buf-size.value);
+                }
+            }
+        }
+
+        buf-size := NumberInputField {
+            label: "Sample Buffer Size";
+            minimum: 0;
+            maximum: 65536;
+            value: 512;
+        }
+    }
+
+    Row {
+        status := StatusField {
+            label: "Current Status";
+            content: "AWG Remote UI ready";
+            status: true;
+        }
+    }
+}

@@ -1,0 +1,448 @@
+import { Button, ComboBox, Slider, LineEdit } from "std-widgets.slint";
+import { CloseWindow } from "close_window.slint";
+
+component Input {
+    in property <string> title;
+
+    HorizontalLayout {
+        height: 30px;
+        spacing: 10px;
+
+        Text {
+            vertical-alignment: center;
+            text: title + ":";
+        }
+
+        @children
+    }
+}
+
+component Section {
+    in property <string> title;
+
+    width: 100%;
+
+    Rectangle {
+        background: grey;
+
+        VerticalLayout {
+            padding: 20px;
+            padding-bottom: 40px;
+            alignment: start;
+            spacing: 20px;
+
+            Text {
+                font-size: 12pt;
+                font-weight: 500;
+
+                text: title;
+            }
+
+            @children
+        }
+    }
+}
+
+component Row {
+    HorizontalLayout {
+        height: 30px;
+        alignment: start;
+        spacing: 20px;
+
+        @children
+    }
+}
+
+component InfoField inherits Input {
+    in property <string> text <=> f.text;
+
+    f:= Text {
+        vertical-alignment: center;
+    }
+}
+
+component InputField inherits Input {
+    callback edited(int /* value */);
+
+    in property <int> minimum: 0;
+    in property <int> maximum: 100;
+    in-out property <int> value;
+
+    f:= LineEdit {
+        width: 70px;
+        horizontal-alignment: right;
+
+        edited => {
+            if (self.text.is-float()) {
+                root.update-value(self.text.to-float());
+            }
+        }
+    }
+
+    function update-value(value: int) {
+        if (value >= root.minimum && value <= root.maximum) {
+            root.value = value;
+            root.edited(value);
+        }
+
+        f.text = root.value;
+    }
+}
+
+component ComboBoxField inherits Input {
+    callback selected <=> f.selected;
+
+    in property options <=> f.model;
+    in property current-index <=> f.current-index;
+    out property current-value <=> f.current-value;
+
+    f:= ComboBox {
+        current-index: 0;
+    }
+}
+
+component SliderField inherits Input {
+    in property <float> minimum <=> f.minimum;
+    in property <float> maximum <=> f.maximum;
+    in-out property <float> value <=> f.value;
+
+    f:= Slider {}
+    Text {
+        vertical-alignment: center;
+        text: round-to-fixed(f.value, 2);
+
+        function round-to-fixed(x: float, d: int) -> float {
+            round(x * pow(10.0, d)) / pow(10.0, d)
+        }
+    }
+}
+
+component Circle {
+    in property border <=> p.stroke;
+    in property background <=> p.fill;
+
+    p:= Path {
+        width: 100%;
+        height: 100%;
+        stroke-width: 1px;
+
+        MoveTo {
+            x: 0;
+            y: 1;
+        }
+        ArcTo {
+            radius-x: 1;
+            radius-y: 1;
+            x: 2;
+            y: 1;
+        }
+        ArcTo {
+            radius-x: 1;
+            radius-y: 1;
+            x: 0;
+            y: 1;
+        }
+        Close {}
+    }
+}
+
+component Connect {
+    callback connect(string /* port */, bool /* connect/disconnect */);
+
+    in property <[string]> ports <=> p.options;
+    in property <bool> connected: false;
+
+    Row {
+        p:= ComboBoxField {
+            title: "Port";
+            current-index: -1;
+
+            selected(str) => {
+                if (str != "No ports found") {
+                    b.enabled = true;
+                }
+            }
+        }
+        
+        b:= Button {
+            text: connected ? "Disconnect AWG" : "Connect to AWG";
+            enabled: false;
+
+            clicked => {
+                if (!connected) {
+                    /* Open port */
+                    root.connect(p.current-value, true);
+                } else {
+                    /* Close port */
+                    root.connect(p.current-value, false);
+                }
+            }
+        }
+    }
+}
+
+component Setup {
+    in property functions <=> func.options;
+    out property function <=> func.current-value;
+    in-out property freq <=> freq.value;
+    in-out property <float> amplitude <=> amplitude.value;
+    in-out property <float> offset <=> offset.value;
+
+    Section {
+        title: "Setup";
+
+        Row {
+            func:= ComboBoxField {
+                height: 30px;
+                title: "Function";
+
+                selected => {
+
+                }
+            }
+
+            HorizontalLayout {
+                spacing: 10px;
+
+                freq:= InputField {
+                    title: "Frequency";
+                    maximum: 1000;
+                    value: 1;
+
+                    edited => {
+                        if (self.value == 1000 && unit.current-index < 2) {
+                            self.value = 1;
+                            unit.current-index += 1;
+                        } else if (self.value == 0 && unit.current-index > 0) {
+                            self.value = 999;
+                            unit.current-index -= 1;
+                        } else if (self.value > 15 && unit.current-index == 2) {
+                            self.value = 15;
+                        } 
+                    }
+                }
+
+                unit:= ComboBox {
+                    width: 70px;
+                    model: ["Hz", "kHz ", "MHz"];
+                    current-index: 0;
+                }
+            }
+        }
+
+        Row {
+            amplitude:= SliderField {
+                width: 250px;
+
+                title: "Amplitude";
+                maximum: 1.0;
+                value: 0.5;
+            }
+
+            offset:= SliderField {
+                width: 250px;
+
+                title: "Offset";
+                maximum: 1.0;
+                value: 0.5;
+            }
+        }
+    }
+}
+
+component Controls {
+    callback setup(bool /* start/stop */);
+
+    in property connected <=> b.enabled;
+    in property <string> function;
+    in property <bool> running: false;
+    in-out property buf-size <=> buf.value;
+
+    Section {
+        title: "Controls";
+
+        Row {
+            b:= Button {
+                text: running ? "Stop Generator" : "Setup Generator";
+                clicked => {
+                    if (!running) {
+                        /* Setup AWG */
+                        root.setup(true);
+                    } else {
+                        /* Stop AGW */
+                        root.setup(false);
+                    }
+                }
+            }
+
+            buf:= InputField {
+                title: "Sample Buffer Size";
+                maximum: 65536;
+                value: 512;
+            }
+        }
+
+        HorizontalLayout {
+            height: 30px;
+
+            alignment: start;
+            spacing: 10px;
+
+            Text {
+                vertical-alignment: center;
+                text: "Current Status:";
+            }
+
+            Circle {
+                width: 12px;
+                height: 12px;
+                y: parent.height / 2 - self.height / 2;
+
+                border: darkgrey;
+                background: running ? green : red;
+            }
+
+            Text {
+                vertical-alignment: center;
+                text: "Lorem ipsum dolor sit amet";
+            }
+        }
+    }
+}
+
+component Status {
+    in property <string> dev-state;
+    in property <int> freq;
+    in property <int> samples;
+    in property <bool> connected;
+    in property <float> cpu-freq;
+    in property <string> sw-version;
+
+    Section {
+        title: "Device Status";
+
+        Row {
+            HorizontalLayout {
+                alignment: start;
+                spacing: 10px;
+
+                Text {
+                    vertical-alignment: center;
+                    text: "Status:";
+                }
+
+                Circle {
+                    width: 12px;
+                    height: 12px;
+                    y: parent.height / 2 - self.height / 2;
+
+                    border: darkgrey;
+                    background: dev-state == "abc" ? green : red;
+                }
+
+                Text {
+                    vertical-alignment: center;
+                    text: dev-state;
+                }
+            }
+
+            InfoField {
+                title: "Frequency Out";
+                text: freq + " Hz";
+            }
+
+            InfoField {
+                title: "Samples";
+                text: samples;
+            }
+        }
+
+        Row {
+            InfoField {
+                title: "Connection";
+                text: connected ? "connected" : "not connected";
+            }
+        }
+
+        Row {
+            InfoField {
+                title: "CPU Frequency";
+                text: cpu-freq + " MHz";
+            }
+        }
+
+        Row {
+            InfoField {
+                title: "Software Version";
+                text: sw-version;
+            }
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    callback connect <=> connect.connect;
+    // callback set-func <=> setup.
+    callback setup <=> controls.setup;
+
+
+    in property <string> version;
+    in property ports <=>  connect.ports;
+    in property connected <=> connect.connected;
+    in property functions <=> setup.functions;
+    out property function <=> setup.function;
+    in-out property freq <=> setup.freq;
+    in-out property amplitude <=> setup.amplitude;
+    in-out property offset <=> setup.offset;
+    in-out property <float> rise_time;
+    in-out property <float> high_time;
+    in-out property <float> fall_time;
+    in-out property <float> gauss_time;
+    in-out property <float> sinc_time;
+    in-out property <int> expo_dir;
+    in-out property <float> expo_time;
+    in-out property <float> noise_time;
+    in property running <=> controls.running;
+    in-out property buf-size <=> controls.buf-size ;
+    in property dev-state <=> status.dev-state;
+    in property freq-out <=> status.freq;
+    in property samples <=> status.samples;
+    in property cpu-freq <=> status.cpu-freq;
+    in property sw-version <=> status.sw-version;
+    in property <string> message;
+
+    title: "Arbitrary Waveform Generator – Remote User Interface";
+
+    preferred-width: 960px;
+    preferred-height: 720px;
+
+    default-font-size: 10pt;
+
+    background: lightgrey;
+
+    VerticalLayout {
+        padding: 20px;
+        alignment: start;
+        spacing: 20px;
+
+        HorizontalLayout {
+            height: 30px;
+            alignment: space-between;
+            
+            // center text vertically
+            Text {
+                vertical-alignment: center;
+                text: "RemoteUI version: \{root.version}"; 
+            }
+            connect:= Connect {}
+        }
+
+        setup:= Setup {}
+        controls:= Controls {
+            connected: connected;
+        }
+        status:= Status {
+            connected: connected;
+        }
+    }
+}

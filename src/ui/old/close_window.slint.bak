@@ -1,0 +1,10 @@
+import { StandardButton, Button } from "std-widgets.slint";
+export component CloseWindow inherits Dialog {
+    title: "Quit";
+
+    Text {
+      text: "Do you want to quit?";
+    }
+    StandardButton { kind: ok; }
+    StandardButton { kind: cancel; }
+}

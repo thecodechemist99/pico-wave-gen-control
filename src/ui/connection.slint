@@ -1,0 +1,79 @@
+import { Row, Section } from "section.slint";
+import { DropdownField, InfoField } from "components.slint";
+import { Button } from "std-widgets.slint";
+
+export component Connection inherits Section {
+    callback connect(string /* port */, bool /* true = connect, false = disconnect */);
+
+    in property <bool> connected;
+    in property ports <=> port.model;
+    in property version <=> version.content;
+
+    Row {
+        alignment: space-between;
+
+        version := InfoField {
+            label: "Remote UI Version";
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+    
+            port := DropdownField {
+                label: "Port";
+                current-index: -1;
+
+                selected(str) => {
+                    if (str != "No ports found") {
+                        btn.enabled = true;
+                    }
+                }
+            }
+
+            btn := Button {
+                text: root.connected ? "Disconnect AWG" : "Connect to AWG";
+                enabled: false;
+
+                clicked => {
+                    /* Open or close port */
+                    root.connect(port.current-value, !connected);
+                }
+            }
+        }
+    }
+}
+
+// component Connect {
+//     callback connect(string /* port */, bool /* connect/disconnect */);
+
+//     in property <[string]> ports <=> p.options;
+//     in property <bool> connected: false;
+
+//     Row {
+//         p:= ComboBoxField {
+//             title: "Port";
+//             current-index: -1;
+
+//             selected(str) => {
+//                 if (str != "No ports found") {
+//                     b.enabled = true;
+//                 }
+//             }
+//         }
+        
+//         b:= Button {
+//             text: connected ? "Disconnect AWG" : "Connect to AWG";
+//             enabled: false;
+
+//             clicked => {
+//                 if (!connected) {
+//                     /* Open port */
+//                     root.connect(p.current-value, true);
+//                 } else {
+//                     /* Close port */
+//                     root.connect(p.current-value, false);
+//                 }
+//             }
+//         }
+//     }
+// }

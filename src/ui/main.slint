@@ -1,6 +1,60 @@
-export component MainWindow inherits Window {
-  preferred-width: 960px;
-  preferred-height: 720px;
+import { Connection } from "connection.slint";
+import { Setup } from "setup.slint";
+import { Controls } from "controls.slint";
+import { Status } from "status.slint";
 
-  background: lightgrey;
+
+export component MainWindow inherits Window {
+    callback connect <=> conn.connect;
+    callback setup <=> ctrl.setup;
+    callback set-function <=> setup.set-function;
+    callback stop <=> ctrl.stop;
+
+    in-out property amplitude <=> setup.amplitude;
+    in property connected <=> conn.connected;
+    in property cpu-freq <=> status.cpu-freq;
+    in property device-connection <=> status.connection;
+    in property device-conn-indicator <=> status.conn-indicator;
+    in property device-status <=> status.status;
+    in property device-status-indicator <=> status.status-indicator;
+    out property frequency <=> setup.frequency;
+    in property freq-out <=> status.freq-out;
+    in property functions <=> setup.functions;
+    in-out property offset <=> setup.offset;
+    in property ports <=> conn.ports;
+    in property samples <=> status.samples;
+    in property status <=> ctrl.status;
+    in property status-indicator <=> ctrl.indicator;
+    in property sw-version <=> status.sw-version;
+    in property version <=> conn.version;
+
+    title: "Arbitrary Waveform Generator – Remote User Interface";
+
+    preferred-width: 960px;
+    preferred-height: 720px;
+
+    default-font-size: 10pt;
+    background: grey;
+
+    VerticalLayout {
+        padding: 20px;
+        alignment: start;
+        spacing: 20px;
+
+        conn:= Connection {
+            width: 100%;
+        }
+
+        setup:= Setup {
+            width: 100%;
+        }
+
+        ctrl:= Controls {
+            width: 100%;
+        }
+
+        status:= Status {
+            width: 100%;
+        }
+    }
 }

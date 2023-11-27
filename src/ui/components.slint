@@ -1,0 +1,142 @@
+import { ComboBox, LineEdit, Slider} from "std-widgets.slint";
+import { Circle } from "shapes.slint";
+
+export global Numbers {
+    function round(value: float, decimals: int) -> string {
+        floor(value) + "." + Math.round((value - floor(value)) * pow(10, decimals))
+    }
+}
+
+component Field {
+    in property <string> label;
+
+    HorizontalLayout {
+        height: 30px;
+        spacing: 10px;
+
+        l := Text {
+            vertical-alignment: center;
+            text: label + ":";
+        }
+
+        @children
+    }
+}
+
+export component InfoField inherits Field {
+    in property content <=> f.text;
+
+    f := Text { vertical-alignment: center; }
+}
+
+export component TextInputField inherits Field {
+    callback accepted <=> f.accepted;
+    callback edited <=> f.edited;
+
+    in property enabled <=> f.enabled;
+    out property has-focus <=> f.has-focus;
+    in property horizontal-alignment <=> f.horizontal-alignment;
+    in property placeholder-text <=> f.placeholder-text;
+    in property read-only <=> f.read-only;
+    in-out property text <=> f.text;
+    
+    f := LineEdit {}
+}
+
+export component NumberInputField inherits Field {
+    callback accepted(float /* value */);
+    callback edited(float /* value */);
+
+    in property <int> decimals;
+    in property enabled <=> f.enabled;
+    out property has-focus <=> f.has-focus;
+    in property horizontal-alignment <=> f.horizontal-alignment;
+    in property <float> minimum: 0;
+    in property <float> maximum: 100;
+    in property placeholder-text <=> f.placeholder-text;
+    in property read-only <=> f.read-only;
+    in-out property <float> value: self.minimum;
+    
+    f := LineEdit {
+        text: root.minimum;
+
+        accepted => {
+            if (self.text.is-float()) {
+                root.accepted(self.text.to-float());
+            }
+        }
+
+        edited => {
+            if (self.text.is-float()) {
+                root.update-value(self.text.to-float());
+            }
+        }
+    }
+
+    function update-value(value: float) {
+        if (value >= root.minimum && value <= root.maximum) {
+            root.value = value;
+            root.edited(root.value);
+        }
+    }
+
+    public function set-value(value: float) {
+        f.text = value;
+        root.value = value;
+    }
+}
+
+export component DropdownField inherits Field {
+    callback selected <=> f.selected;
+
+    in-out property current-index <=> f.current-index;
+    in-out property current-value <=> f.current-value;
+    in property enabled <=> f.enabled;
+    out property has-focus <=> f.has-focus;
+    in property model <=> f.model;
+
+    f := ComboBox {}
+}
+
+export component SliderField inherits Field {
+    callback changed <=> f.changed;
+
+    in property <int> decimals;
+    in property enabled <=> f.enabled;
+    out property has-focus <=> f.has-focus;
+    in property minimum <=> f.minimum;
+    in property maximum <=> f.maximum;
+    in-out property value <=> f.value;
+
+    f := Slider {
+        min-width: 50px;
+
+        changed => {
+            // Round value to specified decimals
+            v.text = Numbers.round(self.value, root.decimals);
+            self.value = v.text.to-float();
+        }
+    }
+
+    v := Text {
+        vertical-alignment: center;
+
+        text: Numbers.round(root.value, root.decimals);
+    }
+}
+
+export component StatusField inherits Field {
+    in property content <=> f.text;
+    in property <bool> status;
+
+    Circle {
+        width: 12px;
+        height: 12px;
+        y: parent.height / 2 - self.height / 2;
+
+        border: darkgrey;
+        background: status ? green : red;
+    }
+
+    f := Text { vertical-alignment: center; }
+}

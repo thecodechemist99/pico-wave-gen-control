@@ -1,0 +1,53 @@
+import { Row, TitledSection } from "section.slint";
+import { InfoField, StatusField } from "components.slint";
+
+export component Status inherits TitledSection {
+    in property connection <=> conn.content;
+    in property conn-indicator <=> conn.status;
+    in property cpu-freq <=> cpu-freq.content;
+    in property freq-out <=> freq-out.content;
+    in property samples <=> samples.content;
+    in property status <=> status.content;
+    in property status-indicator <=> status.status;
+    in property sw-version <=> sw-version.content;
+
+    title: "Device Status";
+
+    Row {
+        status := StatusField {
+            label: "Status";
+            content: "Not connected";
+            status: false;
+        }
+
+        freq-out := InfoField {
+            label: "Frequency Out";
+            content: "0 Hz";
+        }
+
+        samples := InfoField {
+            label: "Samples";
+            content: 0;
+        }
+
+        cpu-freq := InfoField {
+            label: "CPU Frequency";
+            content: "0 Hz";
+        }
+    }
+
+    Row {
+        alignment: space-between;
+
+        conn := StatusField {
+            label: "Connection";
+            content: "Not connected";
+            status: false;
+        }
+
+        sw-version := InfoField {
+            label: "Software Version";
+            content: "Unknown";
+        }
+    }
+}
