@@ -25,33 +25,25 @@ use pico_wave_gen::{serial::Request, GeneratorFunction, Wave};
 
 // Other traits
 use phf::{phf_map, Map};
-use serialport::{available_ports, SerialPort};
+use serial::get_ports;
+use serialport::SerialPort;
 use slint::{ModelRc, SharedString, VecModel};
 
 slint::include_modules!();
 
 // Modules
-
 mod serial;
 
-/// Default values to ensure proper waveform
-static MAX_AMPLITUDE: Map<&'static str, f32> = phf_map! {
-    "Sine" => 0.48,
-    "Pulse" => 0.89,
-    "Gaussian" => 0.55,
-    "Sinc" => 0.5,
-    "Exponential" => 0.5,
-    // "Noise" => 1.0,
-};
-
-/// Default values to ensure proper waveform
-static OFFSET: Map<&'static str, f32> = phf_map! {
-    "Sine" => 0.5,
-    "Pulse" => 0.0,
-    "Gaussian" => 0.0,
-    "Sinc" => 0.5,
-    "Exponential" => 0.0,
-    // "Noise" => 0.0,
+/// Provides default values to ensure a proper waveform.
+///
+/// The values are stored in the format \[max_amplitude, offset\].
+static DEFAULTS: Map<&'static str, [f32; 2]> = phf_map! {
+    "Sine" => [0.48, 0.5],
+    "Pulse" => [0.89, 0.0],
+    "Gaussian" => [0.55, 0.0],
+    "Sinc" => [0.5, 0.5],
+    "Exponential" => [0.5, 0.0],
+    // "Noise" => [1.0, 0.0],
 };
 
 /// Possible buffer sizes
@@ -75,26 +67,20 @@ static OFFSET: Map<&'static str, f32> = phf_map! {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<(), slint::PlatformError> {
+    // Basic setup
     let ui = MainWindow::new()?;
-
-    // Basic settings
-    let ports = match available_ports() {
-        Ok(ports) => ports
-            .iter()
-            .map(|p| SharedString::from(&p.port_name))
-            .collect(),
-        Err(_) => Vec::from([SharedString::from("No ports found")]),
-    };
-
+    let ports: Vec<SharedString> = get_ports()
+        .iter()
+        .map(|p| SharedString::from(&p.port_name))
+        .collect();
     let functions =
         ["Sine", "Pulse", "Gaussian", "Sinc", "Exponential"].map(|name| SharedString::from(name));
 
     // Setup variables
     let wave = Rc::new(RefCell::new(Wave::default()));
     let serial: Rc<RefCell<Option<Box<dyn SerialPort>>>> = Rc::new(RefCell::new(None));
-    // let mut serial: Rc<Option<Box<dyn SerialPort>>> = Rc::new(None);
 
-    // Appply initial settings
+    // Appply initial settings to UI
     ui.set_version(SharedString::from(VERSION));
     ui.set_ports(ModelRc::from(Rc::new(VecModel::from(ports))));
     ui.set_functions(functions.into());
@@ -124,7 +110,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         ui.set_status_indicator(true);
                         ui.set_connected(true);
                     }
-                    Err(_e) => {
+                    Err(_) => {
                         // Error establishing connection
                         ui.set_status(SharedString::from("Failed to establish connection to AWG."));
                         ui.set_status_indicator(false);
@@ -162,7 +148,7 @@ fn main() -> Result<(), slint::PlatformError> {
         };
 
         // Send to device
-        serial::send_message(req, serial.borrow_mut());
+        serial::send_request(req, serial.borrow_mut()).unwrap(); // TODO: Add error handling
 
         ui.set_status(SharedString::from("Waiting for AWG response."));
 
@@ -237,8 +223,7 @@ fn main() -> Result<(), slint::PlatformError> {
 fn set_defaults(func: &str, mut wave: RefMut<'_, Wave>, ui: &MainWindow) {
     wave.func = GeneratorFunction::from_str(func).unwrap();
 
-    let amplitude = *MAX_AMPLITUDE.get(func).unwrap();
-    let offset = *OFFSET.get(func).unwrap();
+    let [amplitude, offset] = *DEFAULTS.get(func).unwrap();
 
     wave.set_amplitude(amplitude);
     wave.set_offset(offset);
