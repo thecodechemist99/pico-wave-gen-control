@@ -31,15 +31,22 @@ pub fn get_ports() -> Vec<SerialPortInfo> {
 pub fn send_request(
     req: Request,
     mut serial: RefMut<'_, Option<Box<dyn SerialPort>>>,
-) -> Result<usize, Error> {
+) -> Result<(), Error> {
     let send_msg = serde_json::to_string(&req).unwrap();
 
     // Send to device
     println!("{}", send_msg);
 
-    // match serial.as_mut() {
     match serial.as_mut() {
-        Some(s) => s.write(send_msg.as_bytes()),
+        Some(s) => {
+            // Check if message buffer is larger than 64 Bytes and split if necessary
+            let chunks = send_msg.as_bytes().chunks(64);
+            for chunk in chunks {
+                let written_bytes = s.write(&chunk);
+                println!("{:?}", written_bytes);
+            }
+            Ok(())
+        }
         None => Err(Error::new(
             ErrorKind::NotConnected,
             "Not connected to a device",

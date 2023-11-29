@@ -88,9 +88,11 @@ fn main() -> Result<(), slint::PlatformError> {
     // Callbacks
     let ui_handle = ui.as_weak();
     let serial_handle = serial.clone();
+    let wave_handle = wave.clone();
     ui.on_connect(move |port, connect| {
         let ui = ui_handle.upgrade().unwrap();
         let serial = serial_handle.to_owned();
+        let wave = wave_handle.to_owned();
 
         match connect {
             true => {
@@ -103,7 +105,17 @@ fn main() -> Result<(), slint::PlatformError> {
 
                 match conn {
                     Ok(conn) => {
-                        _ = serial.borrow_mut().insert(conn);
+                        let _ = serial.borrow_mut().insert(conn);
+
+                        // Send initial request
+                        let req = Request {
+                            command: "connect",
+                            freq: ui.get_frequency() as u32,
+                            buf_size: 512, // TODO: Set default in UI before and get from ui here
+                            wave: wave.take(),
+                        };
+
+                        let _ = serial::send_request(req, serial.borrow_mut()); // TODO: Add error handling
 
                         // Update UI
                         ui.set_status(SharedString::from("Connected to AWG, port: ") + &port);
