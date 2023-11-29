@@ -2,7 +2,7 @@ import { ComboBox, LineEdit, Slider} from "std-widgets.slint";
 import { Circle } from "shapes.slint";
 
 export global Numbers {
-    function round(value: float, decimals: int) -> string {
+    public function round(value: float, decimals: int) -> string {
         floor(value) + "." + Math.round((value - floor(value)) * pow(10, decimals))
     }
 }
@@ -121,7 +121,8 @@ export component SliderField inherits Field {
     v := Text {
         vertical-alignment: center;
 
-        text: Numbers.round(root.value, root.decimals);
+        // text: Numbers.round(root.value, root.decimals);
+        text: root.value;
     }
 }
 
